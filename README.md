@@ -17,9 +17,11 @@ The most recent solver is found [here](src/solver.py). It finds the optimal solu
 
 #### Running the solver
 
-'''python3 solver.py N'''
+Run the command 
 
-where N is the number of the desired challenge (1-4)
+```python3 solver.py N```
+
+where N is the number of the desired challenge (1-4).
 
 #### Elapsed times:
 
