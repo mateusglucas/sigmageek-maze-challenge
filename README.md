@@ -23,7 +23,7 @@ Run the command
 
 where N is the number of the desired challenge (1-4).
 
-#### Elapsed times:
+#### Elapsed times (after loading the states of the maze)
 
 * challenge 1: 33.61 s
 * challenge 2: 206.37 s
