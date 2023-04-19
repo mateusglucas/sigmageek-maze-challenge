@@ -30,7 +30,7 @@ from automata_maze import AutomataMaze
 
 plot_flag = False
 plot_folder = '../images'
-iters_per_info = 10 # info print interval, in iterations
+iters_per_info = 50 # info print interval, in iterations
 iters_per_plot = 100
 
 # Challenge 4 variables
@@ -57,13 +57,15 @@ maze_size = None
 maze_shape = None
 start_pos = None
 end_pos = None
-  
+n_cols = None
+ 
 def get_packed_maze_states(input_filename, states_filename, max_n_epochs):
     global maze_size
     global maze_shape
     global start_pos
     global end_pos
-   
+    global n_cols
+    
     m = AutomataMaze(input_filename)
     if exists_unknown_block:
         solved_block = AutomataMaze(unknown_block_solution_filename)
@@ -73,6 +75,7 @@ def get_packed_maze_states(input_filename, states_filename, max_n_epochs):
     maze_shape = m.maze.shape
     start_pos = m.start_position()
     end_pos = m.end_position()
+    n_cols = maze_shape[1]
     
     sz = maze_size//8 + (maze_size % 8 != 0)
     
@@ -100,8 +103,16 @@ def get_packed_maze_states(input_filename, states_filename, max_n_epochs):
 def is_valid(position):
     return position.row>=0 and position.row<maze_shape[0] and position.col>=0 and position.col<maze_shape[1]
 
-def unpack(packed_states, epoch):
-    return np.unpackbits(packed_states[epoch])[:maze_size].reshape(maze_shape) == 1
+def unpack(packed_values):
+    return np.unpackbits(packed_values)[:maze_size].reshape(maze_shape) == 1
+
+# To avoid using unpackbits when we only need one specific value
+def get_bit(packed_values, row, col):
+    elem_idx = col + row*n_cols
+    byte_idx = elem_idx // 8
+    bit_idx = 7 - (elem_idx % 8)       
+
+    return (packed_values[byte_idx] & (1<<bit_idx)) != 0 
                   
 def find_shortest_solution(max_n_epochs):
     start_time = time()
@@ -136,7 +147,7 @@ def find_shortest_solution(max_n_epochs):
         
         if (i % iters_per_info == 0):
             print('Epoch {}'.format(i))
-        states = unpack(packed_states, i)
+        states = unpack(packed_states[i])
 
         if i==0:
             positions[start_pos.row, start_pos.col] = True
@@ -145,7 +156,7 @@ def find_shortest_solution(max_n_epochs):
         else:
             if n_lives==1:
                 positions = last_positions[1:-1,:-2] | last_positions[1:-1,2:] | last_positions[:-2,1:-1] | last_positions[2:,1:-1]
-                positions = positions * (~states)
+                positions = positions & (~states)
             else:
                 lives = np.maximum.reduce([last_lives[1:-1,:-2], last_lives[1:-1,2:] , last_lives[:-2,1:-1], last_lives[2:,1:-1]])
                 lives = lives - states
@@ -195,10 +206,11 @@ def find_shortest_solution(max_n_epochs):
         # Matrix to store the first epoch that a position has been occcupied
         # Storing epoch + 1, to represent "no epoch" as 0 (positions 
         # that were never occupied), epoch 0 as 1, n-th epoch as n+1
-        positions_first_epoch = unpack(packed_positions, last_epoch) * (last_epoch+1)
+        positions = unpack(packed_positions[last_epoch])
+        positions_first_epoch = positions * (last_epoch+1)
         for i in range(last_epoch-1,-1,-1):
-            positions = unpack(packed_positions, i)
-            positions_first_epoch[positions==True] = i+1
+            positions = unpack(packed_positions[i])
+            positions_first_epoch= positions_first_epoch*(~positions) + positions*(i+1)
         
         # Matrix with the distance from each position that has been 
         # occupied to the end position. Positions that were never
@@ -225,10 +237,9 @@ def find_shortest_solution(max_n_epochs):
         print('Calculating solution...')
         solution = ''
         for i in range(solution_idx-1,-1,-1):
-            positions = unpack(packed_positions, i)
             for d in directions():
                 previous_position = last_position - d
-                if is_valid(previous_position) and positions[previous_position.row, previous_position.col] == True:
+                if is_valid(previous_position) and get_bit(packed_positions[i], previous_position.row, previous_position.col) == True:
                     last_position = previous_position
                     if d==UP:
                         solution = 'U' + solution
@@ -276,7 +287,7 @@ def find_shortest_solution(max_n_epochs):
         for i in range(solution_idx,-1,-1):
             if (i % iters_per_info == 0):
                 print('Epoch {}. Stored positions with nonzero lives: {}'.format(i, total_nonzero))
-            states = unpack(packed_states, i)
+            states = unpack(packed_states[i])
             
             if i==solution_idx:
                 positions = np.full(maze_shape, False)
@@ -286,7 +297,7 @@ def find_shortest_solution(max_n_epochs):
                 lives = np.maximum.reduce([last_lives[1:-1,:-2], last_lives[1:-1,2:] , last_lives[:-2,1:-1], last_lives[2:,1:-1]])
                 lives = lives - states
                 lives = lives * (lives>0)
-                possible_positions = unpack(packed_positions, i)
+                possible_positions = unpack(packed_positions[i])
                 lives = lives * possible_positions                
                 positions = lives>0
             
@@ -318,12 +329,10 @@ def find_shortest_solution(max_n_epochs):
         for i in range(1,solution_idx+1):
             sparse_lives = sparse_lives_list[i].toarray()
 
-            old_states = unpack(packed_states, i-1)
-            
             for d in directions():
                 next_position = last_position + d
                 if is_valid(next_position):
-                    last_pos_state = old_states[last_position.row, last_position.col]
+                    last_pos_state = get_bit(packed_states[i-1], last_position.row, last_position.col)
                     
                     next_pos_life = sparse_lives[next_position.row, next_position.col]
                     next_pos_expected_life = actual_lives + (1 if last_pos_state == True else 0)

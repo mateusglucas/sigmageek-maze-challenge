@@ -12,6 +12,9 @@ class Position:
 
     def __sub__(self, other):
         return Position(self.row-other.row, self.col-other.col)
+    
+    def __truediv__(self, den):
+        return Position(self.row/den, self.col/den)
         
     def __neg__(self):
         return Position(-self.row, -self.col)

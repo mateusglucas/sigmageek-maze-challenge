@@ -7,7 +7,6 @@ from position import Position
 class AutomataMaze:
     def __init__(self, filename):
         maze = []
-        self.neighbors_mask = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
                    
         with open(filename, 'r', encoding='utf-8') as f:
             for row_idx, line in enumerate(f):
@@ -28,20 +27,20 @@ class AutomataMaze:
                 maze.append(row)
             self.maze = np.array(maze)
             
-            maze_shape = self.maze.shape
-            aux = np.zeros((maze_shape[0]+2, maze_shape[1]+2), dtype=np.uint8)
-            aux[1:-1,1:-1] = self.maze
-            self.adjacent_green_cells = aux[:-2,1:-1] + aux[2:,1:-1] + aux[1:-1,2:] + aux[1:-1,:-2] + aux[:-2,:-2] + aux[2:,2:] + aux[2:,:-2] + aux[:-2,2:] 
+            self.update_adjacent_green_cells()
+    
+    def update_adjacent_green_cells(self):
+        maze_shape = self.maze.shape
+        aux_maze = np.zeros((maze_shape[0]+2, maze_shape[1]+2), dtype=np.uint8)
+        aux_maze[1:-1,1:-1] = self.maze
+        self.adjacent_green_cells = aux_maze[:-2,1:-1] + aux_maze[2:,1:-1] + aux_maze[1:-1,2:] + aux_maze[1:-1,:-2] + aux_maze[:-2,:-2] + aux_maze[2:,2:] + aux_maze[2:,:-2] + aux_maze[:-2,2:] 
     
     def modify_maze(self, new_block, row_to_insert, col_to_insert):
         n_rows = new_block.shape[0]
         n_cols = new_block.shape[1]
         self.maze[row_to_insert:row_to_insert + n_rows, col_to_insert:col_to_insert+n_cols] = new_block
         
-        maze_shape = self.maze.shape
-        aux = np.zeros((maze_shape[0]+2, maze_shape[1]+2), dtype=np.uint8)
-        aux[1:-1,1:-1] = self.maze
-        self.adjacent_green_cells = aux[:-2,1:-1] + aux[2:,1:-1] + aux[1:-1,2:] + aux[1:-1,:-2] + aux[:-2,:-2] + aux[2:,2:] + aux[2:,:-2] + aux[:-2,2:] 
+        self.update_adjacent_green_cells()
               
     def min_distance(self):
         return (self.end_pos-self.start_pos).norm()
@@ -61,7 +60,7 @@ class AutomataMaze:
         
     def state(self, position):
         return self.maze[position.row, position.col]
-       
+                 
     def next(self):
 
         white_to_green = (self.adjacent_green_cells>1)*(self.adjacent_green_cells<5) # branco para verde
@@ -75,7 +74,4 @@ class AutomataMaze:
         self.maze[self.start_pos.row, self.start_pos.col] = False
         self.maze[self.end_pos.row, self.end_pos.col] = False
         
-        maze_shape = self.maze.shape
-        aux = np.zeros((maze_shape[0]+2, maze_shape[1]+2), dtype=np.uint8)
-        aux[1:-1,1:-1] = self.maze
-        self.adjacent_green_cells = aux[:-2,1:-1] + aux[2:,1:-1] + aux[1:-1,2:] + aux[1:-1,:-2] + aux[:-2,:-2] + aux[2:,2:] + aux[2:,:-2] + aux[:-2,2:] 
+        self.update_adjacent_green_cells()
