@@ -19,7 +19,7 @@ My submitted results:
 * challenge 2: 6016 steps (optimal)
 * challenge 3: 6200 steps (trivial, without using the given ability)
 * challenge 4: closest distance 2699 on epoch 2299 (optimal)
-* challenge 5: 3.095 particles (execution interrupted due to the deadline)
+* challenge 5: 3095 particles (execution interrupted due to the deadline)
 
 ## Solver
 
@@ -42,7 +42,7 @@ To run the solver for challenge 5, just execute the script without parameters
 #### Actual results
 
 * challenges 1 to 4: same as the submitted ones
-* challenge 5: 10.165 particles (20 more than the first place solution! :star2:)
+* challenge 5: 10165 particles (20 more than the first place solution! :star2:)
 
 #### Elapsed times :hourglass_flowing_sand: (load maze states + find solution)
 
